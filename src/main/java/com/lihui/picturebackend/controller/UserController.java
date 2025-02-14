@@ -172,4 +172,40 @@ public class UserController {
         userVOPage.setRecords(userVOList);
         return ResultUtils.success(userVOPage);
     }
+
+
+    /**
+     * 编辑个人信息
+     */
+    @PostMapping("/edit")
+    public BaseResponse<Boolean> editUser(@RequestBody UserInfoEditRequest userInfoEditRequest, HttpServletRequest request) {
+        // 获取当前登录用户的详细信息
+        User loginUser = userService.getLoginUser(request);  // 传递 request 参数
+
+        // 校验参数
+        if (userInfoEditRequest == null || userInfoEditRequest.getId() == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+        }
+
+        // 如果编辑的是其他用户的资料，需要判断权限
+        if (!userInfoEditRequest.getId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有权限编辑其他用户信息");
+        }
+
+        // 创建用户对象并复制编辑请求中的数据
+        User userToUpdate = new User();
+        BeanUtils.copyProperties(userInfoEditRequest, userToUpdate);
+
+        // 更新用户信息
+        boolean result = userService.updateById(userToUpdate);
+        if (!result) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "更新失败");
+        }
+
+        // 返回更新成功的结果
+        return ResultUtils.success(true);
+    }
+
+
+
 }
