@@ -19,6 +19,7 @@ mybatis-plus:
     map-underscore-to-camel-case: false
     # 仅在开发环境打印日志
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    safe-result-handler-enabled:
   global-config:
     enable-sql-runner: true
     db-config:
@@ -36,3 +37,12 @@ knife4j:
         api-rule: package
         api-rule-resources:
           - com.lihui.picturebackend.controller
+
+# 对象存储配置
+#cos:
+#  client:
+#    host: XXXXX
+#    secretId: XXXXXXX
+#    secretKey: XXXXXXX
+#    region: XXXXXXX
+#    bucket: XXXXXXX
