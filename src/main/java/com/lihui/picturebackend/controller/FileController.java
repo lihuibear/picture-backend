@@ -1,5 +1,10 @@
 package com.lihui.picturebackend.controller;
 
+import com.lihui.picturebackend.model.dto.picture.PictureUploadRequest;
+import com.lihui.picturebackend.model.entity.User;
+import com.lihui.picturebackend.model.vo.PictureVO;
+import com.lihui.picturebackend.service.PictureService;
+import com.lihui.picturebackend.service.UserService;
 import com.qcloud.cos.model.COSObject;
 import com.qcloud.cos.model.COSObjectInputStream;
 import com.qcloud.cos.utils.IOUtils;

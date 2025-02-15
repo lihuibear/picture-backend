@@ -93,5 +93,6 @@ public class CosManager {
     public void deleteObject(String key) {
         cosClient.deleteObject(cosClientConfig.getBucket(), key);
     }
+
 }
 
