@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lihui.picturebackend.exception.BusinessException;
 import com.lihui.picturebackend.exception.ErrorCode;
 import com.lihui.picturebackend.exception.ThrowUtils;
+import com.lihui.picturebackend.manager.CosManager;
 import com.lihui.picturebackend.manager.FileManager;
 import com.lihui.picturebackend.manager.upload.FilePictureUpload;
 import com.lihui.picturebackend.manager.upload.PictureUploadTemplate;
@@ -32,11 +33,14 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +66,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     private FilePictureUpload filePictureUpload;
     @Resource
     private UrlPictureUpload urlPictureUpload;
+
+    @Resource
+    private CosManager cosManager;
 
     /**
      * 上传图片
@@ -101,10 +108,13 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         UploadPictureResult uploadPictureResult = pictureUploadTemplate.uploadPicture(inputSource, uploadPathPrefix);
 
         // 构造要入库的图片信息
-        // 构造要入库的图片信息
+
         Picture picture = new Picture();
         picture.setUrl(uploadPictureResult.getUrl());
+        picture.setThumbnailUrl(uploadPictureResult.getThumbnailUrl());
         String picName = uploadPictureResult.getPicName();
+
+
         if (pictureUploadRequest != null && StrUtil.isNotBlank(pictureUploadRequest.getPicName())) {
             picName = pictureUploadRequest.getPicName();
         }
@@ -118,6 +128,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         picture.setPicScale(uploadPictureResult.getPicScale());
         picture.setPicFormat(uploadPictureResult.getPicFormat());
         picture.setUserId(loginUser.getId());
+        if (pictureUploadRequest != null) {
+            picture.setCategory(pictureUploadRequest.getCategory());
+        }
         //补充审核参数
         this.fillReviewParams(picture, loginUser);
 
@@ -336,6 +349,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 格式化数量
         Integer count = pictureUploadByBatchRequest.getCount();
         String namePrefix = pictureUploadByBatchRequest.getNamePrefix();
+        String categoryName = pictureUploadByBatchRequest.getCategory();
         if (StrUtil.isBlank(namePrefix)) {
             namePrefix = searchText;
         }
@@ -372,6 +386,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             if (StrUtil.isNotBlank(namePrefix)) {
                 // 设置图片名称，序号连续递增
                 pictureUploadRequest.setPicName(namePrefix + (uploadCount + 1));
+                pictureUploadRequest.setCategory(categoryName);
             }
             try {
                 PictureVO pictureVO = this.uploadPicture(fileUrl, pictureUploadRequest, loginUser);
@@ -386,6 +401,42 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             }
         }
         return uploadCount;
+    }
+
+    /**
+     * 删除图片
+     *
+     * @param oldPicture
+     */
+    @Async
+    @Override
+    public void clearPictureFile(Picture oldPicture) {
+        // 判断该图片是否被多条记录使用
+        String pictureUrl = oldPicture.getUrl();
+        long count = this.lambdaQuery()
+                .eq(Picture::getUrl, pictureUrl)
+                .count();
+        // 有不止一条记录用到了该图片，不清理
+        if (count > 1) {
+            return;
+        }
+        try {
+            // 提取路径部分
+            String picturePath = new URL(pictureUrl).getPath();
+            cosManager.deleteObject(picturePath);
+
+            // 清理缩略图
+            String thumbnailUrl = oldPicture.getThumbnailUrl();
+            if (StrUtil.isNotBlank(thumbnailUrl)) {
+                String thumbnailPath = new URL(thumbnailUrl).getPath();
+                cosManager.deleteObject(thumbnailPath);
+            }
+        } catch (MalformedURLException e) {
+            log.error("error url.img URL: {}", pictureUrl, e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "格式错误的 URL");
+        }
+
+
     }
 }
 

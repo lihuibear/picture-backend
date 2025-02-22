@@ -18,4 +18,8 @@ public class PictureUploadByBatchRequest {
      * 名称前缀
      */
     private String namePrefix;
+    /**
+     * 分类
+     */
+    private String category;
 }

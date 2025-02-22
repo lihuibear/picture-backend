@@ -2,15 +2,15 @@ package com.lihui.picturebackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.lihui.picturebackend.model.dto.picture.PictureQueryRequest;
 import com.lihui.picturebackend.model.dto.picture.PictureReviewRequest;
 import com.lihui.picturebackend.model.dto.picture.PictureUploadByBatchRequest;
 import com.lihui.picturebackend.model.dto.picture.PictureUploadRequest;
 import com.lihui.picturebackend.model.entity.Picture;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.lihui.picturebackend.model.entity.User;
 import com.lihui.picturebackend.model.vo.PictureVO;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.scheduling.annotation.Async;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -91,4 +91,7 @@ public interface PictureService extends IService<Picture> {
             PictureUploadByBatchRequest pictureUploadByBatchRequest,
             User loginUser
     );
+
+    @Async
+    void clearPictureFile(Picture oldPicture);
 }
