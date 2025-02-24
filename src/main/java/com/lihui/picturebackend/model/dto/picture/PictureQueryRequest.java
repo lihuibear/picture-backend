@@ -55,6 +55,16 @@ public class PictureQueryRequest extends PageRequest implements Serializable {
     private Integer picHeight;
 
     /**
+     * 空间id
+     */
+    private Long spaceId;
+
+    /**
+     * 是否只查询 spaceId 为 null 的数据
+     */
+    private boolean nullSpaceId;
+
+    /**
      * 图片比例
      */
     private Double picScale;

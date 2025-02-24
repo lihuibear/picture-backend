@@ -3,10 +3,7 @@ package com.lihui.picturebackend.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lihui.picturebackend.model.dto.picture.PictureQueryRequest;
-import com.lihui.picturebackend.model.dto.picture.PictureReviewRequest;
-import com.lihui.picturebackend.model.dto.picture.PictureUploadByBatchRequest;
-import com.lihui.picturebackend.model.dto.picture.PictureUploadRequest;
+import com.lihui.picturebackend.model.dto.picture.*;
 import com.lihui.picturebackend.model.entity.Picture;
 import com.lihui.picturebackend.model.entity.User;
 import com.lihui.picturebackend.model.vo.PictureVO;
@@ -23,7 +20,7 @@ public interface PictureService extends IService<Picture> {
     /**
      * 上传图片
      *
-     * @param inputSource 文件输入源
+     * @param inputSource          文件输入源
      * @param pictureUploadRequest
      * @param loginUser
      * @return
@@ -75,6 +72,7 @@ public interface PictureService extends IService<Picture> {
 
     /**
      * 填充审核参数
+     *
      * @param picture
      * @param loginUser
      */
@@ -92,6 +90,27 @@ public interface PictureService extends IService<Picture> {
             User loginUser
     );
 
+    /**
+     * 删除图片(cos)
+     * @param oldPicture
+     */
     @Async
     void clearPictureFile(Picture oldPicture);
+
+    /**
+     * 检查图片权限
+     *
+     * @param loginUser
+     * @param picture
+     */
+    void checkPictureAuth(User loginUser, Picture picture);
+
+    /**
+     * 删除图片
+     * @param pictureId
+     * @param loginUser
+     */
+    void deletePicture(long pictureId, User loginUser);
+
+    void editPicture(PictureEditRequest pictureEditRequest, User loginUser);
 }
