@@ -63,3 +63,8 @@ knife4j:
 #    secretKey: XXXXXXX
 #    region: XXXXXXX
 #    bucket: XXXXXXX
+
+
+# 阿里云 AI 配置
+#aliYunAi:
+#  apiKey: xxxx

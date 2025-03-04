@@ -3,13 +3,16 @@ package com.lihui.picturebackend.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.lihui.picturebackend.api.aiyunai.model.CreateOutPaintingTaskResponse;
 import com.lihui.picturebackend.model.dto.picture.*;
 import com.lihui.picturebackend.model.entity.Picture;
 import com.lihui.picturebackend.model.entity.User;
 import com.lihui.picturebackend.model.vo.PictureVO;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
  * @author lihui
@@ -113,4 +116,12 @@ public interface PictureService extends IService<Picture> {
     void deletePicture(long pictureId, User loginUser);
 
     void editPicture(PictureEditRequest pictureEditRequest, User loginUser);
+
+    List<PictureVO> searchPictureByColor(Long spaceId, String picColor, User loginUser);
+
+
+    @Transactional(rollbackFor = Exception.class)
+    void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser);
+
+    CreateOutPaintingTaskResponse createPictureOutPaintingTask(CreatePictureOutPaintingTaskRequest createPictureOutPaintingTaskRequest, User loginUser);
 }

@@ -14,6 +14,7 @@ import com.lihui.picturebackend.model.dto.space.SpaceQueryRequest;
 import com.lihui.picturebackend.model.entity.Space;
 import com.lihui.picturebackend.model.entity.User;
 import com.lihui.picturebackend.model.enums.SpaceLevelEnum;
+import com.lihui.picturebackend.model.enums.SpaceTypeEnum;
 import com.lihui.picturebackend.model.vo.SpaceVO;
 import com.lihui.picturebackend.model.vo.UserVO;
 import com.lihui.picturebackend.service.SpaceService;
@@ -77,7 +78,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         if (SpaceLevelEnum.COMMON.getValue() != space.getSpaceLevel() && !userService.isAdmin(loginUser)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限创建指定级别的空间");
         }
-        // 4. 控制同一用户只能创建一个私有空间
+        // 4. 控制同一用户只能创建一个私有空间，以及一个团队空间
         String lock = String.valueOf(userId).intern();
         synchronized (lock) {
             Long newSpaceId = transactionTemplate.execute(status -> {
@@ -110,6 +111,8 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         String spaceName = space.getSpaceName();
         Integer spaceLevel = space.getSpaceLevel();
         SpaceLevelEnum spaceLevelEnum = SpaceLevelEnum.getEnumByValue(spaceLevel);
+        Integer spaceType = space.getSpaceType();
+        SpaceTypeEnum spaceTypeEnum = SpaceTypeEnum.getEnumByValue(spaceType);
         // 创建时校验
         if (add) {
             if (StrUtil.isBlank(spaceName)) {
@@ -117,6 +120,9 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
             }
             if (spaceLevel == null) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "空间级别不能为空");
+            }
+            if (spaceTypeEnum == null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "空间类型不能为空");
             }
         }
         // 修改数据时，空间名称进行校验
@@ -126,6 +132,10 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         // 修改数据时，空间级别进行校验
         if (spaceLevel != null && spaceLevelEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "空间级别不存在");
+        }
+        // 修改数据时，空间类型进行校验 but不存在修改
+        if (spaceType != null && spaceTypeEnum == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "空间类型不存在");
         }
     }
 
@@ -233,6 +243,20 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
             if (space.getMaxCount() == null) {
                 space.setMaxCount(maxCount);
             }
+        }
+    }
+
+    /**
+     * 检查空间权限
+     *
+     * @param loginUser
+     * @param space
+     */
+    @Override
+    public void checkSpaceAuth(User loginUser, Space space) {
+        // 仅本人或管理员可编辑
+        if (!space.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
     }
 }
