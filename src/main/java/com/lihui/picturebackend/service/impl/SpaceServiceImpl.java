@@ -9,6 +9,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lihui.picturebackend.exception.BusinessException;
 import com.lihui.picturebackend.exception.ErrorCode;
 import com.lihui.picturebackend.exception.ThrowUtils;
+import com.lihui.picturebackend.manager.sharding.DynamicShardingManager;
+import com.lihui.picturebackend.mapper.SpaceMapper;
 import com.lihui.picturebackend.model.dto.space.SpaceAddRequest;
 import com.lihui.picturebackend.model.dto.space.SpaceQueryRequest;
 import com.lihui.picturebackend.model.entity.Space;
@@ -20,21 +22,19 @@ import com.lihui.picturebackend.model.enums.SpaceTypeEnum;
 import com.lihui.picturebackend.model.vo.SpaceVO;
 import com.lihui.picturebackend.model.vo.UserVO;
 import com.lihui.picturebackend.service.SpaceService;
-import com.lihui.picturebackend.mapper.SpaceMapper;
 import com.lihui.picturebackend.service.SpaceUserService;
 import com.lihui.picturebackend.service.UserService;
 import org.springframework.beans.BeanUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/**
- * @author lihui
- * @description 针对表【space(空间)】的数据库操作Service实现
- * @createDate 2025-02-22 14:28:44
- */
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -54,6 +54,10 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
 
     @Resource
     private SpaceUserService spaceUserService;
+//为方便部署，暂时不使用分表
+//    @Resource
+//    @Lazy
+//    private DynamicShardingManager dynamicShardingManager;
 
     /**
      * 创建空间
@@ -110,6 +114,10 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
                     result = spaceUserService.save(spaceUser);
                     ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "创建团队成员记录失败");
                 }
+                //为方便部署，暂时不使用分表
+
+                // 创建分表(仅对团队空间有效)
+//                dynamicShardingManager.createSpacePictureTable(space);
                 // 返回新写入的数据 id
                 return space.getId();
             });
