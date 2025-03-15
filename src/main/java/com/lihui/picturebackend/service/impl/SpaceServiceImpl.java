@@ -12,13 +12,16 @@ import com.lihui.picturebackend.exception.ThrowUtils;
 import com.lihui.picturebackend.model.dto.space.SpaceAddRequest;
 import com.lihui.picturebackend.model.dto.space.SpaceQueryRequest;
 import com.lihui.picturebackend.model.entity.Space;
+import com.lihui.picturebackend.model.entity.SpaceUser;
 import com.lihui.picturebackend.model.entity.User;
 import com.lihui.picturebackend.model.enums.SpaceLevelEnum;
+import com.lihui.picturebackend.model.enums.SpaceRoleEnum;
 import com.lihui.picturebackend.model.enums.SpaceTypeEnum;
 import com.lihui.picturebackend.model.vo.SpaceVO;
 import com.lihui.picturebackend.model.vo.UserVO;
 import com.lihui.picturebackend.service.SpaceService;
 import com.lihui.picturebackend.mapper.SpaceMapper;
+import com.lihui.picturebackend.service.SpaceUserService;
 import com.lihui.picturebackend.service.UserService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -49,6 +52,9 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
     @Resource
     private TransactionTemplate transactionTemplate;
 
+    @Resource
+    private SpaceUserService spaceUserService;
+
     /**
      * 创建空间
      *
@@ -68,6 +74,9 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         if (space.getSpaceLevel() == null) {
             space.setSpaceLevel(SpaceLevelEnum.COMMON.getValue());
         }
+        if (space.getSpaceType() == null) {
+            space.setSpaceType(SpaceTypeEnum.PRIVATE.getValue());
+        }
         // 填充容量和大小
         this.fillSpaceBySpaceLevel(space);
         // 2. 校验参数
@@ -85,12 +94,22 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
                 // 判断是否已有空间
                 boolean exists = this.lambdaQuery()
                         .eq(Space::getUserId, userId)
+                        .eq(Space::getSpaceType, space.getSpaceType())
                         .exists();
                 // 如果已有空间，就不能再创建
-                ThrowUtils.throwIf(exists, ErrorCode.OPERATION_ERROR, "每个用户仅能有一个私有空间");
-                // 创建
+                ThrowUtils.throwIf(exists, ErrorCode.OPERATION_ERROR, "每个用户每类空间只能创建一个");
+                // 写入数据库
                 boolean result = this.save(space);
-                ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "保存空间到数据库失败");
+                ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+                // 如果是团队空间，关联新增团队成员记录
+                if (SpaceTypeEnum.TEAM.getValue() == spaceAddRequest.getSpaceType()) {
+                    SpaceUser spaceUser = new SpaceUser();
+                    spaceUser.setSpaceId(space.getId());
+                    spaceUser.setUserId(userId);
+                    spaceUser.setSpaceRole(SpaceRoleEnum.ADMIN.getValue());
+                    result = spaceUserService.save(spaceUser);
+                    ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "创建团队成员记录失败");
+                }
                 // 返回新写入的数据 id
                 return space.getId();
             });
@@ -214,6 +233,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         Long userId = spaceQueryRequest.getUserId();
         String spaceName = spaceQueryRequest.getSpaceName();
         Integer spaceLevel = spaceQueryRequest.getSpaceLevel();
+        Integer spaceType = spaceQueryRequest.getSpaceType();
         String sortField = spaceQueryRequest.getSortField();
         String sortOrder = spaceQueryRequest.getSortOrder();
         // 拼接查询条件
@@ -221,6 +241,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         queryWrapper.eq(ObjUtil.isNotEmpty(userId), "userId", userId);
         queryWrapper.like(StrUtil.isNotBlank(spaceName), "spaceName", spaceName);
         queryWrapper.eq(ObjUtil.isNotEmpty(spaceLevel), "spaceLevel", spaceLevel);
+        queryWrapper.eq(ObjUtil.isNotEmpty(spaceType), "spaceType", spaceType);
         // 排序
         queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
         return queryWrapper;
