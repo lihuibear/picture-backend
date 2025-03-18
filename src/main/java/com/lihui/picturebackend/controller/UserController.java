@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/user")
@@ -139,6 +140,27 @@ public class UserController {
     }
 
     /**
+     * root更新用户
+     */
+    @PostMapping("/root/update")
+    @AuthCheck(mustRole = UserConstant.SU_ADMIN_ROLE)
+    public BaseResponse<Boolean> updateRootUser(@RequestBody UserUpdateAdminRequest userUpdateAdminRequest) {
+        if (userUpdateAdminRequest == null || userUpdateAdminRequest.getId() == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 检查 userRole 是否合法
+        String userRole = userUpdateAdminRequest.getUserRole();
+        if (userRole != null && !Objects.equals(userRole, "user") && !Objects.equals(userRole, "admin")) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Invalid user role. Allowed values are 'user' or 'admin'.");
+        }
+        User user = new User();
+        BeanUtils.copyProperties(userUpdateAdminRequest, user);
+        boolean result = userService.updateById(user);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+    /**
      * 更新用户
      */
     @PostMapping("/update")
@@ -146,6 +168,11 @@ public class UserController {
     public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest) {
         if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 检查 userRole 是否合法
+        String userRole = userUpdateRequest.getUserRole();
+        if (userRole != null && !Objects.equals(userRole, "user")) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Invalid user role. Allowed values are 'user'.");
         }
         User user = new User();
         BeanUtils.copyProperties(userUpdateRequest, user);
@@ -160,7 +187,7 @@ public class UserController {
      * @param userQueryRequest 查询请求参数
      */
     @PostMapping("/list/page/vo")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @AuthCheck(mustRole = UserConstant.SU_ADMIN_ROLE)
     public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest) {
         ThrowUtils.throwIf(userQueryRequest == null, ErrorCode.PARAMS_ERROR);
         long current = userQueryRequest.getCurrent();
@@ -205,7 +232,6 @@ public class UserController {
         // 返回更新成功的结果
         return ResultUtils.success(true);
     }
-
 
 
 }

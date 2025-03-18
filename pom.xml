@@ -173,7 +173,7 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>com.lihui.picturebackend.PictureBackendApplication</mainClass>
-                    <skip>true</skip>
+
                 </configuration>
                 <executions>
                     <execution>
