@@ -15,4 +15,11 @@ public @interface AuthCheck {
      */
     String mustRole() default "";
 
+    /**
+     * 需要的多个权限（满足其中一个即可）
+     */
+    String[] mustRoles() default {};
+
+
+
 }
