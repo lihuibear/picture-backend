@@ -15,7 +15,8 @@ public enum SpaceRoleEnum {
 
     VIEWER("浏览者", "viewer"),
     EDITOR("编辑者", "editor"),
-    ADMIN("管理员", "admin");
+    ADMIN("管理员", "admin"),
+    SU_ADMIN("超级管理员", "admin");
 
     private final String text;
 

@@ -41,7 +41,9 @@ public class UserController {
         String userAccount = userRegisterRequest.getUserAccount();
         String userPassword = userRegisterRequest.getUserPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
-        long result = userService.userRegister(userAccount, userPassword, checkPassword);
+        String userEmail = userRegisterRequest.getUserEmail();
+        String verifyCode = userRegisterRequest.getVerifyCode(); //输入的验证码
+        long result = userService.userRegister(userAccount, userPassword, checkPassword, userEmail, verifyCode);
         return ResultUtils.success(result);
     }
 
@@ -90,7 +92,7 @@ public class UserController {
      * 创建用户
      */
     @PostMapping("/add")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @AuthCheck(mustRoles = {UserConstant.ADMIN_ROLE, UserConstant.SU_ADMIN_ROLE})
     public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest) {
         ThrowUtils.throwIf(userAddRequest == null, ErrorCode.PARAMS_ERROR);
         User user = new User();
@@ -108,7 +110,9 @@ public class UserController {
      * 根据 id 获取用户（仅管理员）
      */
     @GetMapping("/get")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+//    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @AuthCheck(mustRoles = {UserConstant.ADMIN_ROLE, UserConstant.SU_ADMIN_ROLE})
+
     public BaseResponse<User> getUserById(long id) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         User user = userService.getById(id);
@@ -130,7 +134,9 @@ public class UserController {
      * 删除用户
      */
     @PostMapping("/delete")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+//    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @AuthCheck(mustRoles = {UserConstant.ADMIN_ROLE, UserConstant.SU_ADMIN_ROLE})
+
     public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -144,6 +150,8 @@ public class UserController {
      */
     @PostMapping("/root/update")
     @AuthCheck(mustRole = UserConstant.SU_ADMIN_ROLE)
+    //    @AuthCheck(mustRoles = {UserConstant.ADMIN_ROLE, UserConstant.SU_ADMIN_ROLE})
+
     public BaseResponse<Boolean> updateRootUser(@RequestBody UserUpdateAdminRequest userUpdateAdminRequest) {
         if (userUpdateAdminRequest == null || userUpdateAdminRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -187,7 +195,10 @@ public class UserController {
      * @param userQueryRequest 查询请求参数
      */
     @PostMapping("/list/page/vo")
-    @AuthCheck(mustRole = UserConstant.SU_ADMIN_ROLE)
+//    @AuthCheck(mustRoles = {UserConstant.ADMIN_ROLE, UserConstant.SU_ADMIN_ROLE})
+    @AuthCheck(mustRoles = {UserConstant.ADMIN_ROLE, UserConstant.SU_ADMIN_ROLE})
+
+
     public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest) {
         ThrowUtils.throwIf(userQueryRequest == null, ErrorCode.PARAMS_ERROR);
         long current = userQueryRequest.getCurrent();

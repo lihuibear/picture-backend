@@ -75,10 +75,15 @@ public class SpaceUserAuthManager {
         }
         // 管理员权限
         List<String> ADMIN_PERMISSIONS = getPermissionsByRole(SpaceRoleEnum.ADMIN.getValue());
+        //超级管理员权限
+        List<String> SU_ADMIN_PERMISSIONS = getPermissionsByRole(SpaceRoleEnum.SU_ADMIN.getValue());
         // 公共图库
         if (space == null) {
             if (userService.isAdmin(loginUser)) {
                 return ADMIN_PERMISSIONS;
+            }
+            if (userService.isSUAdmin(loginUser)) {
+                return SU_ADMIN_PERMISSIONS;
             }
             return Collections.singletonList(SpaceUserPermissionConstant.PICTURE_VIEW);
         }

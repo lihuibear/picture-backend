@@ -2,6 +2,8 @@
 application-local.yml
 application-prod.yml
 
+
+
 HELP.md
 target/
 !.mvn/wrapper/maven-wrapper.jar
@@ -35,3 +37,5 @@ build/
 
 ### VS Code ###
 .vscode/
+/src/main/java/com/lihui/picturebackend/utils/CheckCodeUtils.java
+/src/main/java/com/lihui/picturebackend/utils/SendMailUtil.java

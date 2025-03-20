@@ -6,6 +6,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lihui.picturebackend.constant.UserConstant;
+import com.lihui.picturebackend.controller.SendMailController;
 import com.lihui.picturebackend.exception.BusinessException;
 import com.lihui.picturebackend.exception.ErrorCode;
 import com.lihui.picturebackend.manager.auth.StpKit;
@@ -18,9 +19,11 @@ import com.lihui.picturebackend.model.entity.User;
 import com.lihui.picturebackend.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 
 import java.util.ArrayList;
@@ -38,6 +41,11 @@ import static com.lihui.picturebackend.constant.UserConstant.USER_LOGIN_STATE;
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         implements UserService {
+    @Resource
+    private RedisTemplate<String, String> redisTemplate;
+
+    @Resource
+    private SendMailController sendMailController;
 
     /**
      * @param userAccount   用户账户
@@ -46,10 +54,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      * @return
      */
     @Override
-    public long userRegister(String userAccount, String userPassword, String checkPassword) {
-        // 1. 校验参数
-        if (StrUtil.hasBlank(userAccount, userPassword, checkPassword)) {
-
+    public long userRegister(String userAccount, String userPassword, String checkPassword, String userEmail, String verifyCode) {
+        // 1. 校验基本参数
+        if (StrUtil.hasBlank(userAccount, userPassword, checkPassword, userEmail, verifyCode)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
         if (userAccount.length() < 4) {
@@ -61,27 +68,58 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (!userPassword.equals(checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入的密码不一致");
         }
-        // 2. 检查用户账号是否重复
+        if (!isValidEmail(userEmail)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "邮箱格式不正确");
+        }
+
+        // 2. 校验验证码
+        String hashKey = DigestUtils.md5DigestAsHex(userEmail.trim().getBytes());
+        String cacheKey = "picture:sendMailCode:" + hashKey;
+        String redisCode = redisTemplate.opsForValue().get(cacheKey);
+
+        if (redisCode == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "验证码已过期，请重新获取");
+        }
+        if (!redisCode.equalsIgnoreCase(verifyCode)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "验证码错误");
+        }
+
+        // 3. 检查用户账号是否重复
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("userAccount", userAccount);
         long count = this.baseMapper.selectCount(queryWrapper);
         if (count > 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
         }
-        // 3. 加密
+
+        // 4. 加密密码
         String encryptPassword = getEncryptPassword(userPassword);
-        // 4. 插入数据
+
+        // 5. 插入用户数据
         User user = new User();
         user.setUserAccount(userAccount);
         user.setUserPassword(encryptPassword);
         user.setUserName("无名");
         user.setUserRole(UserRoleEnum.USER.getValue());
-        user.setUserPassword("http://cloudimgs.huifly.cn/favicon.ico"); // 默认头像
+        user.setUserEmail(userEmail);
+        user.setUserAvatar("http://cloudimgs.huifly.cn/favicon.ico"); // 默认头像
+
         boolean saveResult = this.save(user);
         if (!saveResult) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
         }
+
+        // 6. 删除验证码
+        redisTemplate.delete(cacheKey);
+
         return user.getId();
+    }
+
+    /**
+     * 校验邮箱格式
+     */
+    private static boolean isValidEmail(String email) {
+        return email.matches("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$");
     }
 
     /**
@@ -224,6 +262,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Override
     public boolean isAdmin(User user) {
         return user != null && UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
+    }
+
+    /**
+     * 判断是否为超级管理员
+     *
+     * @param user
+     * @return
+     */
+    @Override
+    public boolean isSUAdmin(User user) {
+        return user != null && UserRoleEnum.SU_ADMIN.getValue().equals(user.getUserRole());
     }
 }
 
