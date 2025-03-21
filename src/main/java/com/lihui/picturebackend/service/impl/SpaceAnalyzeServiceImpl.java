@@ -224,7 +224,8 @@ public class SpaceAnalyzeServiceImpl extends ServiceImpl<SpaceMapper, Space>
         ThrowUtils.throwIf(spaceRankAnalyzeRequest == null, ErrorCode.PARAMS_ERROR);
 
         // 检查权限，仅管理员可以查看
-        ThrowUtils.throwIf(!userService.isAdmin(loginUser), ErrorCode.NO_AUTH_ERROR);
+        // 检查权限，管理员或超级管理员可以查看
+        ThrowUtils.throwIf(!userService.isAdmin(loginUser) && !userService.isSUAdmin(loginUser), ErrorCode.NO_AUTH_ERROR);
 
         // 构造查询条件
         QueryWrapper<Space> queryWrapper = new QueryWrapper<>();
@@ -245,10 +246,12 @@ public class SpaceAnalyzeServiceImpl extends ServiceImpl<SpaceMapper, Space>
     private void checkSpaceAnalyzeAuth(SpaceAnalyzeRequest spaceAnalyzeRequest, User loginUser) {
         boolean queryPublic = spaceAnalyzeRequest.isQueryPublic();
         boolean queryAll = spaceAnalyzeRequest.isQueryAll();
-        // 全空间分析或者公共图库权限校验：仅管理员可访问
+        // 全空间分析或者公共图库权限校验：仅管理员可访问/ 超级管理员
+        // 全空间分析或者公共图库权限校验：仅管理员或超级管理员可访问
         if (queryAll || queryPublic) {
-            ThrowUtils.throwIf(!userService.isAdmin(loginUser), ErrorCode.NO_AUTH_ERROR);
-        } else {
+            ThrowUtils.throwIf(!userService.isAdmin(loginUser) && !userService.isSUAdmin(loginUser), ErrorCode.NO_AUTH_ERROR);
+        }
+        else {
             // 分析特定空间，仅本人或管理员可以访问
             Long spaceId = spaceAnalyzeRequest.getSpaceId();
             ThrowUtils.throwIf(spaceId == null, ErrorCode.PARAMS_ERROR);
